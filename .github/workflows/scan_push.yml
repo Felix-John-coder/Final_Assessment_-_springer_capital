@@ -36,7 +36,7 @@ jobs:
   secret-scan:
     name: Scan Repository for Secrets
     runs-on: ubuntu-latest
-
+    needs: Filesystem_scan
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
