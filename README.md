@@ -26,10 +26,11 @@ The service is fully containerized with Docker, automated through a CI/CD pipeli
 
 ### Pipeline stages:
 - sonar-qube code quality workflow runs
-- Gitleaks workflow runs
-- Test_build workflow run
 
-- Checkout code from Git repository
+- Gitleaks workflow runs
+
+- Test_build workflow run
+    - Checkout code from Git repository
     - Run linting and dependencies scan
     - Run unit tests 
     - Build Docker image
@@ -41,7 +42,7 @@ The service is fully containerized with Docker, automated through a CI/CD pipeli
     - On approval, deploy to EC2
 
 ### picture of a successful CICD 
-![Architecture Diagram](images/image.png)
+![Architecture Diagram](success.png)
 
 
 ## Configuration & Secrets
