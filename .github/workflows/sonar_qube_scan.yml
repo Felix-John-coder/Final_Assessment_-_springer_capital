@@ -30,7 +30,7 @@ jobs:
           key: ${{ runner.os }}-sonar
 
       - name: scan 
-        uses:  SonarSource/sonarqube-scan-action@v7.0.0 
+        uses:  SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65
         env: 
           SONAR_TOKEN: ${{secrets.SONAR_SCAN}} #This is the sonarcloud security token
           

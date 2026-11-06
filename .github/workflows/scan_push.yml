@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run filesystem scan
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           scan-type: fs
           scan-ref: .
@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 2 
     steps:
       - name: aws login 
-        uses: aws-actions/configure-aws-credentials@v6 
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd 
         with: 
           role-to-assume: ${{secrets.AWS_ROLE}}
           aws-region: ${{secrets.AWS_REGION}}
@@ -55,7 +55,7 @@ jobs:
         run: docker load -i image.tar 
       - name: run scan
         id: trivy
-        uses: aquasecurity/trivy-action@v0.35.0 
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 
         with:
           format: 'table'
           severity: 'CRITICAL,HIGH'
@@ -75,7 +75,7 @@ jobs:
     timeout-minutes: 2 
     steps: # pushing the already builts and tested image to aws ECR
       - name: aws login 
-        uses: aws-actions/configure-aws-credentials@v6 
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd 
         with: 
           role-to-assume: ${{secrets.AWS_ROLE}}
           aws-region: ${{secrets.AWS_REGION}}
@@ -90,7 +90,7 @@ jobs:
           tags=$(cat "image_tag.txt" | grep "sha-")
           echo "my_tag=$tags" >> "$GITHUB_OUTPUT"
       - name: login to ecr 
-        uses: aws-actions/amazon-ecr-login@v2 
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd
       - name: push 
         run: | 
           echo "${{steps.the_tag.outputs.my_tag}}"
@@ -105,7 +105,7 @@ jobs:
     environment: Final_Assessment
     steps:
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           ECR_REG: ${{ vars.ECR_REG }}
