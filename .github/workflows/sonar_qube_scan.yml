@@ -31,5 +31,5 @@ jobs:
       - name: scan 
         uses:  SonarSource/sonarqube-scan-action@v7.0.0 
         env: 
-          SONAR_TOKEN: ${{secrets.SONAR_SCAN}}
+          SONAR_TOKEN: ${{secrets.SONAR_SCAN}} #This is the sonarcloud security token
           
