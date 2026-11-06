@@ -1,9 +1,8 @@
-# Project A -  Frontend
+# Springer_Capital -  Frontend
 
-## Project Overview
+## Assessment Overview
 
-This project is a frontend service providing brief purpose/functionalities.
-The service is fully containerized with Docker, automated through a CI/CD pipeline, and is designed for deployment on AWS EC2, Kubernetes, ensuring scalability, resilience, and maintainability with best security practices.
+This project implements a DevSecOps pipeline using GitHub Actions, Gitleaks, Trivy, and SonarQube to automate secrets detection, vulnerability scanning, and code quality analysis. It enforces security checks within CI/CD to support secure and reliable software delivery.
 
 ## Architecture
 
@@ -41,8 +40,9 @@ The service is fully containerized with Docker, automated through a CI/CD pipeli
     - Push Docker image to private ECR (On approval)
     - On approval, deploy to EC2
 
-### picture of a successful CICD 
-![Architecture Diagram](success.png)
+### Picture of a Successful CI/CD Pipeline
+
+![Architecture Diagram](sucess.png)
 
 
 ## Configuration & Secrets
