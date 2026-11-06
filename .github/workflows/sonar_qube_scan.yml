@@ -9,6 +9,7 @@ on:
     
 permissions: 
   contents: read
+  id-token: write
 concurrency:
   cancel-in-progress: false
   group: sonar-cloud
