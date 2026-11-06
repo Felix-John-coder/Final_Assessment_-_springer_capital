@@ -140,3 +140,4 @@ jobs:
             sudo docker ps --filter name=aau-project
 
             echo "Deployment Completed!"
+      #deployed!
