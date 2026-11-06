@@ -21,7 +21,7 @@ jobs:
       - name: checkout repo 
         uses: actions/checkout@v4 
         with:
-          fetch-depth: 0  #a deep fetch for good scanning of source code
+          fetch-depth: 0  #A deep fetch for good scanning of source code
       - name: Cache SonarCloud packages
         uses: actions/cache@v3
         with:
