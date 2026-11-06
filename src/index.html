@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f8fafc">
+    <title>Job Dashboard | Ops View</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="header-content">
+            <div class="brand">
+                <div class="brand-icon">J</div>
+                <div>
+                    <h1>System Job Dashboard</h1>
+                    <p class="subtitle">Kubernetes Operations Center</p>
+                </div>
+            </div>
+
+            <div class="connection-wrapper">
+                <span class="connection-dot"></span>
+                <div>
+                    <span class="connection-label">API Connection</span>
+                    <div id="connection-status" class="status-ok">Connected</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="app">
+        <section class="welcome-section">
+            <div>
+                <p class="eyebrow">OPERATIONS OVERVIEW</p>
+                <h2>Job Management</h2>
+                <p class="welcome-text">
+                    Monitor, create, and manage your application jobs.
+                </p>
+            </div>
+
+            <div class="header-actions">
+                <button id="delete-selected-btn"
+                        class="btn-danger hidden">
+                    Delete Selected
+                </button>
+
+                <button id="open-modal-btn" class="btn-primary">
+                    <span>+</span> Create New Job
+                </button>
+            </div>
+        </section>
+
+        <section class="stats-grid" aria-label="Job summary">
+            <article class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-label">Total Jobs</span>
+                    <span class="stat-icon icon-total">▤</span>
+                </div>
+                <div id="total-jobs" class="stat-value">0</div>
+                <p class="stat-description">All recorded jobs</p>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-label">Running</span>
+                    <span class="stat-icon icon-running">▶</span>
+                </div>
+                <div id="running-jobs" class="stat-value">0</div>
+                <p class="stat-description">Currently executing</p>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-label">Pending</span>
+                    <span class="stat-icon icon-pending">◷</span>
+                </div>
+                <div id="pending-jobs" class="stat-value">0</div>
+                <p class="stat-description">Waiting to execute</p>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-label">Failed</span>
+                    <span class="stat-icon icon-failed">!</span>
+                </div>
+                <div id="failed-jobs" class="stat-value">0</div>
+                <p class="stat-description">Jobs requiring attention</p>
+            </article>
+        </section>
+
+        <section class="jobs-panel">
+            <div class="panel-heading">
+                <div>
+                    <h3>All Jobs</h3>
+                    <p>View and manage your job executions.</p>
+                </div>
+                <span class="live-label">
+                    <span class="live-dot"></span> Live dashboard
+                </span>
+            </div>
+
+            <div class="toolbar">
+                <div class="search-box">
+                    <span aria-hidden="true">⌕</span>
+                    <input
+                        type="search"
+                        id="job-search"
+                        placeholder="Search jobs by name..."
+                        aria-label="Search jobs by name">
+                </div>
+
+                <label class="filter-control">
+                    <span class="sr-only">Filter by status</span>
+                    <select id="status-filter">
+                        <option value="all">All statuses</option>
+                        <option value="running">Running</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="table-container">
+                <table id="job-table" class="hidden">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-column">
+                                <input
+                                    type="checkbox"
+                                    id="select-all"
+                                    aria-label="Select all jobs"
+                                    onclick="selectAllJobs(this)">
+                            </th>
+                            <th>Job Name</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th>Last Update</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="job-list"></tbody>
+                </table>
+
+                <div id="empty-state" class="empty-state hidden">
+                    <div class="empty-icon">▤</div>
+                    <h3>No jobs found</h3>
+                    <p>Create a new job or adjust your search filters.</p>
+                </div>
+            </div>
+
+            <div class="panel-footer">
+                <span>Job execution overview</span>
+                <span>System status: <strong>Monitored</strong></span>
+            </div>
+        </section>
+
+        <footer class="page-footer">
+            <span>Job Dashboard</span>
+            <span>Operations &amp; Monitoring</span>
+        </footer>
+    </main>
+
+    <div id="job-modal" class="modal hidden"
+         role="dialog" aria-modal="true"
+         aria-labelledby="modal-title">
+        <div class="modal-content">
+            <button type="button" id="close-modal-btn"
+                    class="modal-close" aria-label="Close dialog">
+                &times;
+            </button>
+
+            <div class="modal-heading-icon">+</div>
+            <h3 id="modal-title">Create New Job</h3>
+            <p class="modal-description">
+                Enter a name to create a new job in your dashboard.
+            </p>
+
+            <form id="job-form">
+                <label for="job-name-input">Job name</label>
+                <input
+                    type="text"
+                    id="job-name-input"
+                    placeholder="e.g. nightly-backup"
+                    maxlength="100"
+                    required>
+
+                <div class="modal-actions">
+                    <button type="button" id="cancel-modal-btn"
+                            class="btn-secondary">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submit-job-btn"
+                            class="btn-primary">
+                        Create Job
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!--<script src="config.js"></script>
+    <script src="dashboard.js"></script>-->
+</body>
+</html>

@@ -1,0 +1,112 @@
+name: test_build
+on:       
+  push:
+    branches:
+      - main 
+  workflow_dispatch:
+    
+permissions:
+  contents: read 
+  id-token: write
+concurrency: 
+  group: pipeline
+  cancel-in-progress: false 
+jobs:
+  Security_test: 
+    runs-on: ubuntu-latest
+    timeout-minutes: 2 
+    steps:
+      - name: checkout repo 
+        uses:  actions/checkout@v4 #load repo to runner 
+        with: 
+          fetch-depth: 1
+          ref: main 
+      - name: setup node 
+        uses: actions/setup-node@v4
+        with: 
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - name: install dependency 
+        run: npm ci
+      - name: run linting 
+        run:  npx eslint .  #linting source code 
+      - name: check path 
+        run: |
+          pwd 
+          ls
+      - name: Run Unit Tests
+        run: |
+          cd src
+          node dashboard.tests.js
+
+ #=============
+  #build image 
+ #=============     
+  build_image: 
+    runs-on: ubuntu-latest 
+    timeout-minutes: 5 
+    needs: Security_test
+    steps:
+      - name: checkout repo 
+        uses: actions/checkout@v4 
+        with:
+          fetch-depth: 0
+      #we will use docker buildx for faster build,more build features
+      - name: docker build 
+        uses: docker/setup-buildx-action@v3
+      #cached the recent built image for faster build of image...
+      - name: cache docker build 
+        uses: actions/cache@v5.0.3
+        with:
+          key: ${{runner.os}}-cache-path-${{github.sha}}
+          path: /tmp/cache 
+          restore-keys:  ${{runner.os}}-cache-path-
+        # we will use this to create a well defined image tag and labels ... good for dynamic tagging
+      - name: generate image metadata  
+        id: img_tag 
+        uses: docker/metadata-action@v5
+        with: 
+          images: ${{vars.ECR_REG}}/${{vars.ECR_REPO}} 
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest 
+        # This build and package the image 
+      - name: build time 
+        uses: docker/build-push-action@v6 
+        with: 
+          context: . 
+          load: true 
+          push: false 
+          tags: ${{steps.img_tag.outputs.tags}}
+          labels: ${{steps.img_tag.outputs.labels}}
+          cache-from: type=local,src=/tmp/cache
+          cache-to: type=local,dest=/tmp/cache-new 
+          platforms: linux/amd64 
+        # cleaning up the old cache file and replace it with a new one.. this increase the build time and clean up the cache directory for faster build
+      - name: cleaning up old cached file 
+        run: | 
+          rm -rf /tmp/cache 
+          mv /tmp/cache-new /tmp/cache 
+      - name: check built image 
+        run: docker images 
+      - name: save image  
+        id: saved
+        run: | 
+          image=$( echo "${{steps.img_tag.outputs.tags}}" | grep "sha-" | head -n 1)
+          echo "saving now"
+          #using .tar will compress the image for faster upload and download(artifact size minimized)
+          docker save "$image" -o  image.tar  
+      - name: save image tag 
+        run: |
+          echo "${{steps.img_tag.outputs.tags}}" > image_tag.txt 
+      - name: login to aws 
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume:  ${{secrets.AWS_ROLE}} #use role oidc much more safer and configured role in organization secrets
+          aws-region: ${{secrets.AWS_REGION}} #save region in secret
+      - name: export artifact to s3 
+        run: aws s3 cp image.tar s3://project-a-kubernetes-s3-bucket2
+      - name: export artifact metadata 
+        run: aws s3 cp image_tag.txt s3://project-a-kubernetes-s3-bucket2
+#ready to build

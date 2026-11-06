@@ -1,0 +1,142 @@
+name: scan_push_update
+on: 
+  workflow_run:
+    workflows: ["test_build"]
+    types: ["completed"]
+    branches: ["main"]
+  workflow_dispatch:
+    
+permissions:
+  contents: read 
+  id-token: write 
+concurrency: 
+  cancel-in-progress: true 
+  group: ${{github.ref}}
+jobs:
+  Filesystem_scan:
+    name: Scan Filesystem
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Run filesystem scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+    #============
+    #security scan
+    #==============
+  security_scan: 
+    runs-on: ubuntu-latest
+    needs: Filesystem_scan 
+    timeout-minutes: 2 
+    steps:
+      - name: aws login 
+        uses: aws-actions/configure-aws-credentials@v6 
+        with: 
+          role-to-assume: ${{secrets.AWS_ROLE}}
+          aws-region: ${{secrets.AWS_REGION}}
+      - name: download image  
+        run: aws s3 cp s3://project-a-kubernetes-s3-bucket2/image.tar . 
+      - name: download image metadata 
+        id: tag
+        run: |
+          aws s3 cp s3://project-a-kubernetes-s3-bucket2/image_tag.txt  .  
+          tags=$(cat "image_tag.txt" | grep "sha-")
+          echo "mytag=$tags" >> "$GITHUB_OUTPUT"
+      - name: load image to runner 
+        run: docker load -i image.tar 
+      - name: run scan
+        id: trivy
+        uses: aquasecurity/trivy-action@v0.35.0 
+        with:
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: 'true'
+          vuln-type: 'os,library'
+          image-ref: ${{ steps.tag.outputs.mytag }}
+      - name: check
+        if:  steps.trivy.outcome == 'success'
+        run: echo "Passed Security Check!"
+    #==================
+    #Push to aws ecr 
+    #=============
+  push:
+    runs-on: ubuntu-latest
+    needs: security_scan
+    timeout-minutes: 2 
+    steps: # pushing the already builts and tested image to aws ECR
+      - name: aws login 
+        uses: aws-actions/configure-aws-credentials@v6 
+        with: 
+          role-to-assume: ${{secrets.AWS_ROLE}}
+          aws-region: ${{secrets.AWS_REGION}}
+      - name: download image  
+        run: aws s3 cp s3://project-a-kubernetes-s3-bucket2/image.tar . 
+      - name: load image to runner 
+        run: docker load -i image.tar 
+      - name: download image metadata 
+        id: the_tag
+        run: |
+          aws s3 cp s3://project-a-kubernetes-s3-bucket2/image_tag.txt  .  
+          tags=$(cat "image_tag.txt" | grep "sha-")
+          echo "my_tag=$tags" >> "$GITHUB_OUTPUT"
+      - name: login to ecr 
+        uses: aws-actions/amazon-ecr-login@v2 
+      - name: push 
+        run: | 
+          echo "${{steps.the_tag.outputs.my_tag}}"
+          docker tag ${{steps.the_tag.outputs.my_tag}} ${{vars.ECR_REG}}/${{vars.ECR_REPO}}:latest
+          docker push ${{vars.ECR_REG}}/${{vars.ECR_REPO}}:latest
+          docker push  ${{steps.the_tag.outputs.my_tag}}
+  
+  deploy_to_ec2:
+    runs-on: ubuntu-latest
+    needs: push
+    timeout-minutes: 3
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          ECR_REG: ${{ vars.ECR_REG }}
+          ECR_REPO: ${{ vars.ECR_REPO }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: AWS_REGION,ECR_REG,ECR_REPO
+          script: |
+            set -e
+
+            echo "Logging in to Amazon ECR..."
+            aws ecr get-login-password --region "$AWS_REGION" \
+              | sudo docker login \
+                  --username AWS \
+                  --password-stdin "$ECR_REG"
+
+            echo "Pulling the latest image..."
+            sudo docker pull "$ECR_REG/$ECR_REPO:latest"
+
+            echo "Removing the old container if it exists..."
+            sudo docker rm -f aau-project || true
+
+            echo "Starting the new container..."
+            sudo docker run -d \
+              --name aau-project \
+              --restart unless-stopped \
+              -p 80:80 \
+              "$ECR_REG/$ECR_REPO:latest"
+
+            echo "Checking container status..."
+            sudo docker ps --filter name=aau-project
+
+            echo "Deployment Completed!"
