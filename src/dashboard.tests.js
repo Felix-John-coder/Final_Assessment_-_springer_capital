@@ -1,6 +1,6 @@
 /* eslint-env node */
 
-const assert = require('assert');
+const assert = require('node:assert');
 
 // 1. MOCKING PHASE
 const noop = () => {};
@@ -21,9 +21,9 @@ global.document = {
         // Define a getter for innerHTML that mimics the browser behavior
         Object.defineProperty(div, 'innerHTML', {
             get: () => div.textContent
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
         });
         return div;
     },
