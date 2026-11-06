@@ -54,7 +54,9 @@ This project implements a DevSecOps pipeline using GitHub Actions, Gitleaks, Tri
 -       staging Env
 -       production Env
 
+## picture of Container runing in my EC2
 
+![Architecture Diagram](image.png)
 
 ##  Running docker container Locally (DevOps Perspective)
 ```
